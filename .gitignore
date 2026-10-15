@@ -189,4 +189,5 @@ cython_debug/
 .devcontainer/**
 .worktrees/
 
+secrets/**
 config.yaml
