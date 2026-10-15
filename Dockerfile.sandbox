@@ -1,0 +1,37 @@
+# Ephemeral Sandbox Image for Autonomous GitHub Maintenance Agent
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Install core utilities, git, compilers, Python 3.12, Node.js LTS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    build-essential \
+    python3 \
+    python3-pip \
+    python3-venv \
+    sudo \
+    jq \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create runner non-root user
+RUN useradd -m -u 1000 -s /bin/bash runner \
+    && echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER runner
+WORKDIR /home/runner
+
+# Install Antigravity CLI and OpenCode CLI for runner
+RUN curl -fsSL https://raw.githubusercontent.com/anomaly/opencode/main/install.sh | bash || true
+
+ENV PATH="/home/runner/.opencode/bin:/home/runner/.local/bin:${PATH}"
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]

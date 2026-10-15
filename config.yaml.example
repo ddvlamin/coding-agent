@@ -1,0 +1,63 @@
+# Autonomous GitHub Maintenance & Development Agent Configuration
+
+# GitHub App Authentication
+github:
+  app_id: "123456"
+  installation_id: "98765432"  # Optional; auto-discovered per repo if omitted
+  private_key_path: "secrets/github-app.private-key.pem"
+  # Or inline PEM:
+  # private_key: |
+  #   -----BEGIN RSA PRIVATE KEY-----
+  #   ...
+  #   -----END RSA PRIVATE KEY-----
+  bot_username: "github-actions[bot]"
+
+# Reporting via Gmail SMTP
+smtp:
+  host: "smtp.gmail.com"
+  port: 587
+  user: "alerts@example.com"
+  password: "your-16-char-google-app-password"
+  from_email: "alerts@example.com"
+  to_emails:
+    - "maintainer@example.com"
+  enabled: true
+
+# Agent Harness Settings
+harness:
+  default_harness: "antigravity"  # "antigravity" or "opencode"
+  timeout_seconds: 1800
+  deepseek_api_key: "${DEEPSEEK_API_KEY}"
+  deepseek_base_url: "https://api.deepseek.com"
+  agy_path: "agy"
+  opencode_path: "opencode"
+
+# Sandbox Container Settings
+sandbox:
+  use_docker: true
+  image: "repo-agent-sandbox:latest"
+  memory_limit: "4g"
+  cpu_count: 2.0
+  timeout_seconds: 1800
+
+# Managed Repositories List
+repos:
+  - name: "my-org/backend-service"
+    default_branch: "main"
+    test_command: "pytest tests/"
+    lint_command: "flake8 src/"
+    harness: "antigravity"
+    harness_model: "gemini-2.5-pro"
+    max_issues_per_run: 2
+    ideation_count: 2
+    enabled_phases: [1, 2, 3, 4]
+
+  - name: "my-org/frontend-app"
+    default_branch: "main"
+    test_command: "npm test"
+    lint_command: "npm run lint"
+    harness: "opencode"
+    harness_model: "deepseek/deepseek-chat"
+    max_issues_per_run: 1
+    ideation_count: 2
+    enabled_phases: [1, 2, 3, 4]

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Maintenance Agent Digest</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      color: #24292f;
+      background-color: #f6f8fa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(31, 35, 40, 0.12);
+    }
+    .header {
+      background: #24292f;
+      color: #ffffff;
+      padding: 24px;
+    }
+    .header h1 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+    }
+    .header .meta {
+      font-size: 13px;
+      color: #8c959f;
+    }
+    .content {
+      padding: 24px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 24px;
+      font-weight: 600;
+      color: #0969da;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #57606a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #d0d7de;
+      text-align: left;
+    }
+    th {
+      background: #f6f8fa;
+      color: #24292f;
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-success { background: #dafbe1; color: #1a7f37; }
+    .badge-warn { background: #fff8c5; color: #9a6700; }
+    .badge-danger { background: #ffebe9; color: #cf222e; }
+    .repo-section {
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      padding: 16px;
+    }
+    .repo-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 10px 0;
+      color: #0969da;
+    }
+    ul {
+      margin: 4px 0 12px 20px;
+      padding: 0;
+      font-size: 13px;
+    }
+    .footer {
+      background: #f6f8fa;
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: #57606a;
+      border-top: 1px solid #d0d7de;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 Weekly Maintenance Agent Digest</h1>
+      <div class="meta">
+        Execution: {{ timestamp }} | Duration: {{ duration_seconds }}s | Repos: {{ repo_reports | length }}
+        {% if dry_run %}<span class="badge badge-warn" style="margin-left: 8px;">DRY RUN</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val">{{ total_fixed }}</div>
+          <div class="stat-label">PRs Fixed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">{{ total_merged }}</div>
+          <div class="stat-label">PRs Merged</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">{{ total_prs_created }}</div>
+          <div class="stat-label">PRs Opened</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">{{ total_proposals }}</div>
+          <div class="stat-label">Proposals Filed</div>
+        </div>
+      </div>
+
+      <h3>Repository Summary Matrix</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Repository</th>
+            <th>PRs Fixed</th>
+            <th>PRs Merged</th>
+            <th>Issues -> PR</th>
+            <th>Proposals</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in repo_reports %}
+          <tr>
+            <td><strong>{{ r.repo_name }}</strong></td>
+            <td>{{ r.stage1.prs_fixed | length }}</td>
+            <td>{{ r.stage2.prs_merged | length }}</td>
+            <td>{{ r.stage3.prs_created | length }}</td>
+            <td>{{ r.stage4.proposals_created | length }}</td>
+            <td>
+              {% if r.errors %}
+                <span class="badge badge-danger">{{ r.errors | length }} error(s)</span>
+              {% else %}
+                <span class="badge badge-success">Clean</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h3>Detailed Action Logs</h3>
+      {% for r in repo_reports %}
+      <div class="repo-section">
+        <div class="repo-title">{{ r.repo_name }}</div>
+
+        {% if r.stage1.prs_fixed %}
+        <p><strong>Phase 1: PR Comments Fixed</strong></p>
+        <ul>
+          {% for pr in r.stage1.prs_fixed %}
+          <li>Fixed review feedback on PR #{{ pr }} ({{ r.stage1.resolved_threads }} threads resolved)</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if r.stage2.prs_merged %}
+        <p><strong>Phase 2: PRs Merged</strong></p>
+        <ul>
+          {% for pr in r.stage2.prs_merged %}
+          <li>Squash-merged PR #{{ pr }} into default branch</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if r.stage2.conflicts_resolved %}
+        <p><strong>Phase 2: Conflicts Resolved</strong></p>
+        <ul>
+          {% for pr in r.stage2.conflicts_resolved %}
+          <li>Resolved merge conflict on PR #{{ pr }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if r.stage3.prs_created %}
+        <p><strong>Phase 3: Implemented Issues</strong></p>
+        <ul>
+          {% for issue, pr in r.stage3.prs_created %}
+          <li>Implemented Issue #{{ issue }} -> Created PR #{{ pr }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if r.stage4.proposals_created %}
+        <p><strong>Phase 4: Proactive Proposals</strong></p>
+        <ul>
+          {% for issue in r.stage4.proposals_created %}
+          <li>Created proposal issue #{{ issue }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if r.stage3.blocked_issues %}
+        <p><strong style="color: #cf222e;">Blocked Issues</strong></p>
+        <ul>
+          {% for issue, reason in r.stage3.blocked_issues %}
+          <li>Issue #{{ issue }}: {{ reason }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if r.errors %}
+        <p><strong style="color: #cf222e;">Errors Encountered</strong></p>
+        <ul>
+          {% for err in r.errors %}
+          <li>{{ err }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="footer">
+      Generated automatically by Autonomous GitHub Maintenance Agent running on Hetzner VPS.
+    </div>
+  </div>
+</body>
+</html>
