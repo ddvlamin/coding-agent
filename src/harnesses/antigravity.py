@@ -44,6 +44,7 @@ class AntigravityHarness(AgentHarness):
             res = subprocess.run(
                 cmd,
                 cwd=workspace_dir,
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
                 timeout=timeout,

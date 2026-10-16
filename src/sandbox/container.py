@@ -86,6 +86,18 @@ class DockerSandbox:
                 "mode": "rw",
             }
         }
+        host_agy_config = Path.home() / ".gemini" / "antigravity-cli"
+        if host_agy_config.exists():
+            volumes[str(host_agy_config.resolve())] = {
+                "bind": "/home/runner/.gemini/antigravity-cli",
+                "mode": "rw",
+            }
+        host_agy_bin = shutil.which("agy")
+        if host_agy_bin:
+            volumes[str(Path(host_agy_bin).resolve())] = {
+                "bind": "/home/runner/.local/bin/agy",
+                "mode": "ro",
+            }
 
         command = cmd if isinstance(cmd, list) else ["/bin/bash", "-c", cmd]
         container = None
