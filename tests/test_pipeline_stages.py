@@ -37,7 +37,7 @@ def test_stage1_comments_resolver_dry_run(tmp_path):
     sandbox = DockerSandbox(SandboxConfig(use_docker=False))
     harness = DummyHarness()
 
-    gh.auth.app_id = "bot[app]"
+    gh.bot_username = "bot[app]"
     gh.get_open_pull_requests.return_value = [
         PullRequestInfo(
             number=10,
@@ -104,7 +104,7 @@ def test_stage3_issue_implementer(tmp_path):
     sandbox = DockerSandbox(SandboxConfig(use_docker=False))
     harness = DummyHarness(success=True, diff="app.py | 10 ++++++++++")
 
-    gh.auth.app_id = "agent-bot"
+    gh.bot_username = "agent-bot"
     gh.get_ready_issues.return_value = [
         IssueInfo(
             number=5,

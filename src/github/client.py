@@ -59,9 +59,15 @@ class IssueInfo:
 class GitHubClient:
     """High-level client for GitHub REST and GraphQL APIs used by the agent."""
 
-    def __init__(self, auth: GitHubAppAuth, base_url: str = "https://api.github.com") -> None:
+    def __init__(
+        self,
+        auth: GitHubAppAuth,
+        base_url: str = "https://api.github.com",
+        bot_username: str = "app[bot]",
+    ) -> None:
         self.auth = auth
         self.base_url = base_url.rstrip("/")
+        self.bot_username = bot_username
 
     def _http_get(self, endpoint: str, owner_repo: str, params: dict[str, Any] | None = None) -> Any:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"

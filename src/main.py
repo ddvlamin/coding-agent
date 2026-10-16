@@ -38,7 +38,7 @@ class Orchestrator:
             private_key_pem=config.github.get_private_key_pem(),
             installation_id=config.github.installation_id,
         )
-        self.gh_client = GitHubClient(self.auth)
+        self.gh_client = GitHubClient(self.auth, bot_username=config.github.bot_username)
         self.sandbox = DockerSandbox(config.sandbox, deepseek_api_key=config.harness.deepseek_api_key)
         self.git_workspace = GitWorkspace(
             Path(config.workdir),

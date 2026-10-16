@@ -54,13 +54,14 @@ class Stage1CommentsResolver:
             result.errors.append(msg)
             return result
 
-        bot_username = self.gh.auth.app_id  # or standard bot login
+        bot_username = str(self.gh.bot_username).lower()
+        bot_slug = bot_username.removesuffix("[bot]")
 
         for pr in prs:
             # Check eligibility: bot author OR labeled 'agent-fix'
+            author_lower = pr.author.lower()
             is_agent_pr = (
-                "[bot]" in pr.author.lower()
-                or pr.author.lower() == str(bot_username).lower()
+                author_lower in (bot_username, bot_slug, f"{bot_slug}[bot]")
                 or "agent-fix" in [lb.lower() for lb in pr.labels]
             )
             if not is_agent_pr:
