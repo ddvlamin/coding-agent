@@ -46,6 +46,12 @@ class GitHubConfig(BaseModel):
     bot_username: str = Field(
         default_factory=lambda: os.getenv("GITHUB_BOT_USERNAME", "app[bot]")
     )
+    bot_email: str = Field(
+        default_factory=lambda: os.getenv(
+            "GITHUB_BOT_EMAIL",
+            "41898282+github-actions[bot]@users.noreply.github.com",
+        )
+    )
 
     def get_private_key_pem(self) -> str:
         if self.private_key:

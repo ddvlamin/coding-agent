@@ -40,7 +40,12 @@ class Orchestrator:
         )
         self.gh_client = GitHubClient(self.auth)
         self.sandbox = DockerSandbox(config.sandbox, deepseek_api_key=config.harness.deepseek_api_key)
-        self.git_workspace = GitWorkspace(Path(config.workdir), self.auth)
+        self.git_workspace = GitWorkspace(
+            Path(config.workdir),
+            self.auth,
+            bot_username=config.github.bot_username,
+            bot_email=config.github.bot_email,
+        )
         self.email_service = EmailDigestService(config.smtp)
 
     def run(self, target_repos: list[RepoConfig] | None = None, phases: list[int] | None = None) -> PipelineRunSummary:

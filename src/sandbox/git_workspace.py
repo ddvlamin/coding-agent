@@ -16,9 +16,17 @@ logger = logging.getLogger(__name__)
 class GitWorkspace:
     """Manages cloning, branch checkout, committing, and pushing for a repository."""
 
-    def __init__(self, base_workdir: Path, auth: GitHubAppAuth) -> None:
+    def __init__(
+        self,
+        base_workdir: Path,
+        auth: GitHubAppAuth,
+        bot_username: str = "app[bot]",
+        bot_email: str = "41898282+github-actions[bot]@users.noreply.github.com",
+    ) -> None:
         self.base_workdir = Path(base_workdir)
         self.auth = auth
+        self.bot_username = bot_username
+        self.bot_email = bot_email
 
     def prepare_repo(self, owner: str, repo: str) -> Path:
         """Clones or updates repository workspace."""
@@ -39,8 +47,8 @@ class GitWorkspace:
             self._run_git(self.base_workdir, ["clone", clone_url, str(repo_dir)])
 
         # Configure git identity
-        self._run_git(repo_dir, ["config", "user.name", "github-actions[bot]"])
-        self._run_git(repo_dir, ["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"])
+        self._run_git(repo_dir, ["config", "user.name", self.bot_username])
+        self._run_git(repo_dir, ["config", "user.email", self.bot_email])
         return repo_dir
 
     def checkout_branch(self, repo_dir: Path, branch_name: str, create: bool = False, base_branch: str = "main") -> None:
