@@ -51,11 +51,11 @@ docker build -f Dockerfile.sandbox -t repo-agent-sandbox:latest .
 ```
 
 ### How Host `agy` Authentication Works with the Sandbox
-1. Log in to `agy` once on the host machine so `~/.gemini/antigravity-cli/antigravity-oauth-token` is created.
-2. [`DockerSandbox._run_docker`](src/sandbox/container.py) automatically bind-mounts:
-   - `~/.gemini/antigravity-cli` → `/home/runner/.gemini/antigravity-cli` (`rw`, so token refreshes persist)
-   - Host `agy` binary → `/home/runner/.local/bin/agy` (`ro`)
-3. If Docker is unavailable or `use_docker: false`, [`DockerSandbox`](src/sandbox/container.py) automatically falls back to local host execution.
+1. Log in to `agy` once on the host machine (Linux or macOS) so `~/.gemini/antigravity-cli/antigravity-oauth-token` is created.
+2. [`Dockerfile.sandbox`](Dockerfile.sandbox) installs the Linux `agy` and `opencode` binaries inside the container image.
+3. [`DockerSandbox._run_docker`](src/sandbox/container.py) automatically bind-mounts only the OAuth token file:
+   - `~/.gemini/antigravity-cli/antigravity-oauth-token` → `/home/runner/.gemini/antigravity-cli/antigravity-oauth-token` (`rw`)
+4. If Docker is unavailable or `use_docker: false`, [`DockerSandbox`](src/sandbox/container.py) automatically falls back to local host execution.
 
 ---
 

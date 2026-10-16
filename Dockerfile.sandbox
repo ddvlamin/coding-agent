@@ -28,7 +28,8 @@ USER runner
 WORKDIR /home/runner
 
 # Install Antigravity CLI and OpenCode CLI for runner
-RUN curl -fsSL https://raw.githubusercontent.com/anomaly/opencode/main/install.sh | bash || true
+RUN curl -fsSL https://antigravity.google/cli/install.sh | sh \
+    && curl -fsSL https://opencode.ai/install | bash
 
 ENV PATH="/home/runner/.opencode/bin:/home/runner/.local/bin:${PATH}"
 
