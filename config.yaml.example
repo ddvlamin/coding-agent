@@ -10,7 +10,8 @@ github:
   #   -----BEGIN RSA PRIVATE KEY-----
   #   ...
   #   -----END RSA PRIVATE KEY-----
-  bot_username: "github-actions[bot]"
+  bot_username: "my-coding-agent[bot]"
+  bot_email: "12345678+my-coding-agent[bot]@users.noreply.github.com"
 
 # Reporting via Gmail SMTP
 smtp:
