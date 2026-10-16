@@ -118,11 +118,10 @@ class Stage1CommentsResolver:
                     repo_dir,
                     f"fix: address review comments on PR #{pr.number}\n\nAutomated fix by Maintenance Agent",
                 )
-                if not committed:
+                if committed:
+                    self.git.push(repo_dir, pr.head_ref)
+                else:
                     logger.info("No code changes needed for PR #%d", pr.number)
-
-                # Push PR branch
-                self.git.push(repo_dir, pr.head_ref)
 
                 # Resolve GraphQL threads
                 resolved_count = 0
@@ -134,18 +133,19 @@ class Stage1CommentsResolver:
                         logger.warning("Could not resolve thread %s: %s", thread.id, te)
 
                 # Post confirmation comment
+                changes_block = harness_res.diff_summary if committed else "No code changes required (remarks evaluated as non-actionable or already satisfied)."
                 self.gh.add_pr_comment(
                     owner,
                     repo,
                     pr.number,
-                    f"🤖 **Automated Maintenance Agent**: Addressed {resolved_count}/{len(threads)} review comment threads.\n\n"
-                    f"**Changes:**\n```\n{harness_res.diff_summary}\n```\n"
+                    f"🤖 **Automated Maintenance Agent**: Evaluated {len(threads)} review comment thread(s) ({resolved_count} resolved).\n\n"
+                    f"**Changes:**\n```\n{changes_block}\n```\n"
                     f"**Tests:** {'✅ Passing' if harness_res.test_passed else '⚠️ No test run'}",
                 )
 
                 result.prs_fixed.append(pr.number)
                 result.resolved_threads += resolved_count
-                logger.info("Successfully fixed review comments on PR #%d", pr.number)
+                logger.info("Successfully processed review comments on PR #%d", pr.number)
 
             except Exception as e:
                 err = f"Error processing PR #{pr.number} in {owner}/{repo}: {e}"
@@ -156,7 +156,7 @@ class Stage1CommentsResolver:
 
     def _build_prompt(self, pr: PullRequestInfo, threads: list[ReviewThreadInfo]) -> str:
         prompt = (
-            f"Please address the following code review comments on Pull Request #{pr.number}: '{pr.title}'.\n\n"
+            f"Evaluate and address the following code review comments on Pull Request #{pr.number}: '{pr.title}'.\n\n"
             f"PR Description:\n{pr.body}\n\n"
             "Unresolved Review Feedback:\n"
         )
@@ -167,8 +167,13 @@ class Stage1CommentsResolver:
 
         prompt += (
             "\nTask:\n"
-            "1. Read the referenced files and understand the reviewer comments.\n"
-            "2. Make surgical code edits to resolve all review comments.\n"
-            "3. Do not modify unrelated files.\n"
+            "1. Read the referenced files and surrounding context to understand each reviewer remark.\n"
+            "2. Critically evaluate each remark for technical validity, accuracy, and value:\n"
+            "   - Verify whether the concern actually applies to the current code.\n"
+            "   - Check if the suggested change would introduce bugs, regressions, or unnecessary complexity.\n"
+            "   - Do not blindly implement suggestions that are incorrect, outdated, or counterproductive.\n"
+            "3. Only proceed with surgical code edits for remarks that are valid and valuable. "
+            "If a remark is not valid or does not warrant code changes, leave the code untouched and state the technical reason.\n"
+            "4. Do not modify unrelated files or code outside the scope of valid review remarks.\n"
         )
         return prompt
