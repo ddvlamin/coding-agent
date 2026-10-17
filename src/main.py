@@ -17,7 +17,7 @@ from src.pipeline.stage2_merger import Stage2PRMerger
 from src.pipeline.stage3_issues import Stage3IssueImplementer
 from src.pipeline.stage4_ideation import Stage4IdeationEngine
 from src.reporting.email_digest import EmailDigestService, PipelineRunSummary, RepoRunReport
-from src.sandbox.container import DockerSandbox
+from src.sandbox.container import BaseSandbox, get_sandbox
 from src.sandbox.git_workspace import GitWorkspace
 
 logging.basicConfig(
@@ -39,7 +39,7 @@ class Orchestrator:
             installation_id=config.github.installation_id,
         )
         self.gh_client = GitHubClient(self.auth, bot_username=config.github.bot_username)
-        self.sandbox = DockerSandbox(config.sandbox, deepseek_api_key=config.harness.deepseek_api_key)
+        self.sandbox: BaseSandbox = get_sandbox(config.sandbox, deepseek_api_key=config.harness.deepseek_api_key)
         self.git_workspace = GitWorkspace(
             Path(config.workdir),
             self.auth,

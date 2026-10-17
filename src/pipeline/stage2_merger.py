@@ -10,7 +10,7 @@ from pathlib import Path
 from src.config import RepoConfig
 from src.github.client import GitHubClient, PullRequestInfo
 from src.harnesses.base import AgentHarness
-from src.sandbox.container import DockerSandbox
+from src.sandbox.container import BaseSandbox, DockerSandbox
 from src.sandbox.git_workspace import GitWorkspace
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class Stage2PRMerger:
         self,
         gh_client: GitHubClient,
         git_workspace: GitWorkspace,
-        sandbox: DockerSandbox,
+        sandbox: BaseSandbox,
         harness: AgentHarness,
         dry_run: bool = False,
     ) -> None:

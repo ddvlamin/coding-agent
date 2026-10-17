@@ -8,7 +8,7 @@ from pathlib import Path
 
 from src.config import SandboxConfig
 from src.harnesses.base import AgentHarness, HarnessResult
-from src.sandbox.container import DockerSandbox
+from src.sandbox.container import BaseSandbox, DockerSandbox, get_sandbox
 from src.sandbox.git_workspace import GitWorkspace
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class OpenCodeHarness(AgentHarness):
         workspace_dir: Path,
         prompt: str,
         timeout: int,
-        sandbox: DockerSandbox,
+        sandbox: BaseSandbox,
     ) -> tuple[int, str]:
         cmd = [
             self.opencode_path,
@@ -62,9 +62,9 @@ class OpenCodeHarness(AgentHarness):
         prompt: str,
         test_command: str | None = None,
         timeout: int = 1800,
-        sandbox: DockerSandbox | None = None,
+        sandbox: BaseSandbox | None = None,
     ) -> HarnessResult:
-        active_sandbox = sandbox or DockerSandbox(SandboxConfig(use_docker=False))
+        active_sandbox = sandbox or get_sandbox(SandboxConfig(use_docker=False))
         full_prompt = (
             f"{prompt}\n\n"
             "Requirements:\n"
