@@ -47,7 +47,7 @@ When `sandbox.use_docker: true` is enabled in `config.yaml`, [`DockerSandbox`](s
 Build the image before running with Docker enabled:
 
 ```bash
-docker build -f Dockerfile.sandbox -t repo-agent-sandbox:latest .
+docker build -f Dockerfile.sandbox -t coding-agent-sandbox:latest .
 ```
 
 ### How Host `agy` Authentication Works with the Sandbox

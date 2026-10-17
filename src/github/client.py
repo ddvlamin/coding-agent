@@ -386,14 +386,6 @@ class GitHubClient:
         if add_labels:
             self._http_post(f"/repos/{owner}/{repo}/issues/{issue_number}/labels", owner_repo, {"labels": add_labels})
 
-    def assign_issue(self, owner: str, repo: str, issue_number: int, assignee: str) -> None:
-        """Assign issue to a user/bot."""
-        owner_repo = f"{owner}/{repo}"
-        try:
-            self._http_post(f"/repos/{owner}/{repo}/issues/{issue_number}/assignees", owner_repo, {"assignees": [assignee]})
-        except Exception as e:
-            logger.warning("Could not assign issue #%d to '%s': %s", issue_number, assignee, e)
-
     def add_issue_comment(self, owner: str, repo: str, issue_number: int, body: str) -> None:
         """Add comment to an issue."""
         owner_repo = f"{owner}/{repo}"

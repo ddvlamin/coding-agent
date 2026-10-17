@@ -77,8 +77,6 @@ class Stage3IssueImplementer:
             logger.info("No 'ready' issues found for %s/%s", owner, repo)
             return result
 
-        bot_username = self.gh.bot_username
-
         for issue in ready_issues:
             logger.info("Picked issue #%d: '%s'", issue.number, issue.title)
             branch_slug = slugify(issue.title)
@@ -98,9 +96,8 @@ class Stage3IssueImplementer:
                     add_labels=[LABEL_IN_PROGRESS],
                     remove_labels=list(READY_LABELS),
                 )
-                self.gh.assign_issue(owner, repo, issue.number, str(bot_username))
             except Exception as e:
-                logger.warning("Could not update initial issue labels/assignee for #%d: %s", issue.number, e)
+                logger.warning("Could not update initial issue labels for #%d: %s", issue.number, e)
 
             # 2. Checkout fresh branch from default_branch
             try:
