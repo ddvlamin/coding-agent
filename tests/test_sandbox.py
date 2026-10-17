@@ -45,3 +45,25 @@ def test_git_workspace_uses_bot_username(tmp_path):
             repo_dir,
             ["config", "user.email", "343186873+ddvlamin-coding-agent[bot]@users.noreply.github.com"],
         )
+
+
+def test_sandbox_run_tests(tmp_path):
+    config = SandboxConfig(use_docker=False)
+    sandbox = DockerSandbox(config)
+
+    passed, out = sandbox.run_tests(tmp_path, "echo 'tests ok'")
+    assert passed is True
+    assert "tests ok" in out
+
+    passed_fail, _ = sandbox.run_tests(tmp_path, "exit 1")
+    assert passed_fail is False
+
+
+def test_git_workspace_diff_summary(tmp_path):
+    import subprocess
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    assert GitWorkspace.get_git_diff_summary(tmp_path) == "No changes detected"
+
+    (tmp_path / "hello.txt").write_text("world", encoding="utf-8")
+    summary = GitWorkspace.get_git_diff_summary(tmp_path)
+    assert "hello.txt" in summary

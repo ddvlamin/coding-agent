@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.config import RepoConfig
-from src.github.client import GitHubClient, IssueInfo
+from src.github.client import GitHubClient, IssueInfo, LABEL_AGENT_PROPOSAL
 from src.harnesses.base import AgentHarness
 from src.sandbox.container import DockerSandbox
 from src.sandbox.git_workspace import GitWorkspace
@@ -33,7 +33,7 @@ class Stage4Result:
 
 
 class Stage4IdeationEngine:
-    """Inspects codebase and creates proactive improvement proposals tagged 'agent-proposal'."""
+    """Inspects codebase and creates proactive improvement proposals tagged 'agent proposal'."""
 
     def __init__(
         self,
@@ -102,7 +102,7 @@ class Stage4IdeationEngine:
                     "---\n"
                     "*Proposed autonomously by Weekly Maintenance Agent based on codebase review.*"
                 )
-                labels = ["agent-proposal", f"proposal:{prop.category}"]
+                labels = [LABEL_AGENT_PROPOSAL, f"proposal:{prop.category}"]
                 issue = self.gh.create_issue(
                     owner=owner,
                     repo=repo,

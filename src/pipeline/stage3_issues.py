@@ -8,7 +8,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.config import RepoConfig
-from src.github.client import GitHubClient, IssueInfo
+from src.github.client import (
+    GitHubClient,
+    IssueInfo,
+    LABEL_AGENT_BLOCKED,
+    LABEL_AGENT_MANAGED,
+    LABEL_IN_PROGRESS,
+    LABEL_READY_FOR_REVIEW,
+    READY_LABELS,
+)
 from src.harnesses.base import AgentHarness
 from src.sandbox.container import DockerSandbox
 from src.sandbox.git_workspace import GitWorkspace
@@ -81,14 +89,14 @@ class Stage3IssueImplementer:
                 result.prs_created.append((issue.number, 9999))
                 continue
 
-            # 1. Swap labels: remove 'ready'/'ready to implement', add 'in-progress'
+            # 1. Swap labels: remove ready labels, add in progress label
             try:
                 self.gh.update_issue_labels(
                     owner,
                     repo,
                     issue.number,
-                    add_labels=["in-progress"],
-                    remove_labels=["ready", "ready to implement"],
+                    add_labels=[LABEL_IN_PROGRESS],
+                    remove_labels=list(READY_LABELS),
                 )
                 self.gh.assign_issue(owner, repo, issue.number, str(bot_username))
             except Exception as e:
@@ -122,8 +130,8 @@ class Stage3IssueImplementer:
                         owner,
                         repo,
                         issue.number,
-                        add_labels=["agent-blocked"],
-                        remove_labels=["in-progress"],
+                        add_labels=[LABEL_AGENT_BLOCKED],
+                        remove_labels=[LABEL_IN_PROGRESS],
                     )
                     result.blocked_issues.append((issue.number, harness_res.error or "Failed test/build"))
                     continue
@@ -145,8 +153,8 @@ class Stage3IssueImplementer:
                         owner,
                         repo,
                         issue.number,
-                        add_labels=["agent-blocked"],
-                        remove_labels=["in-progress"],
+                        add_labels=[LABEL_AGENT_BLOCKED],
+                        remove_labels=[LABEL_IN_PROGRESS],
                     )
                     result.blocked_issues.append((issue.number, "No changes generated"))
                     continue
@@ -169,7 +177,7 @@ class Stage3IssueImplementer:
                     body=pr_body,
                     head=branch_name,
                     base=default_branch,
-                    labels=["ready-for-review", "agent-managed"],
+                    labels=[LABEL_READY_FOR_REVIEW, LABEL_AGENT_MANAGED],
                 )
 
                 # 7. Update Issue status
@@ -177,8 +185,8 @@ class Stage3IssueImplementer:
                     owner,
                     repo,
                     issue.number,
-                    add_labels=["ready-for-review"],
-                    remove_labels=["in-progress"],
+                    add_labels=[LABEL_READY_FOR_REVIEW],
+                    remove_labels=[LABEL_IN_PROGRESS],
                 )
                 self.gh.add_issue_comment(
                     owner,
@@ -199,8 +207,8 @@ class Stage3IssueImplementer:
                         owner,
                         repo,
                         issue.number,
-                        add_labels=["agent-blocked"],
-                        remove_labels=["in-progress"],
+                        add_labels=[LABEL_AGENT_BLOCKED],
+                        remove_labels=[LABEL_IN_PROGRESS],
                     )
                 except Exception:
                     pass

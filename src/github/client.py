@@ -6,11 +6,22 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from typing import Any
+from urllib.parse import quote
 import httpx
 
 from src.github.auth import GitHubAppAuth, GitHubAuthError
 
 logger = logging.getLogger(__name__)
+
+LABEL_READY = "ready"
+LABEL_READY_TO_IMPLEMENT = "ready to implement"
+READY_LABELS = (LABEL_READY, LABEL_READY_TO_IMPLEMENT)
+LABEL_IN_PROGRESS = "in progress"
+LABEL_READY_FOR_REVIEW = "ready for review"
+LABEL_AGENT_BLOCKED = "agent blocked"
+LABEL_AGENT_MANAGED = "agent managed"
+LABEL_AGENT_FIX = "agent fix"
+LABEL_AGENT_PROPOSAL = "agent proposal"
 
 
 @dataclass
@@ -338,7 +349,7 @@ class GitHubClient:
             if "pull_request" in item:
                 continue
             labels = [lb["name"].lower() for lb in item.get("labels", [])]
-            if "ready" in labels or "ready to implement" in labels:
+            if any(lb in READY_LABELS for lb in labels):
                 ready_issues.append(
                     IssueInfo(
                         number=item["number"],
@@ -367,7 +378,8 @@ class GitHubClient:
         if remove_labels:
             for rl in remove_labels:
                 try:
-                    self._http_delete(f"/repos/{owner}/{repo}/issues/{issue_number}/labels/{rl}", owner_repo)
+                    encoded_label = quote(rl, safe="")
+                    self._http_delete(f"/repos/{owner}/{repo}/issues/{issue_number}/labels/{encoded_label}", owner_repo)
                 except Exception as e:
                     logger.debug("Label '%s' not present to remove: %s", rl, e)
 

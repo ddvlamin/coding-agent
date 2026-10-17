@@ -20,7 +20,14 @@ class DummyHarness(AgentHarness):
         self.diff = diff
         self.out = output
 
-    def execute(self, workspace_dir: Path, prompt: str, test_command: str | None = None, timeout: int = 1800) -> HarnessResult:
+    def execute(
+        self,
+        workspace_dir: Path,
+        prompt: str,
+        test_command: str | None = None,
+        timeout: int = 1800,
+        sandbox: DockerSandbox | None = None,
+    ) -> HarnessResult:
         return HarnessResult(
             success=self.success,
             status="completed" if self.success else "failed",
@@ -131,7 +138,7 @@ def test_stage3_issue_implementer(tmp_path):
     assert (5, 55) in res.prs_created
     gh.create_pull_request.assert_called_once()
     gh.update_issue_labels.assert_any_call(
-        "org", "repo", 5, add_labels=["ready-for-review"], remove_labels=["in-progress"]
+        "org", "repo", 5, add_labels=["ready for review"], remove_labels=["in progress"]
     )
 
 

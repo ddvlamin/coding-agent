@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
-import os
-import subprocess
 from pathlib import Path
 
+from src.config import SandboxConfig
 from src.harnesses.base import AgentHarness, HarnessResult
+from src.sandbox.container import DockerSandbox
+from src.sandbox.git_workspace import GitWorkspace
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,13 @@ class AntigravityHarness(AgentHarness):
         self.model = model
         self.effort = effort
 
-    def _run_agy(self, workspace_dir: Path, prompt: str, timeout: int) -> tuple[int, str]:
+    def _run_agy(
+        self,
+        workspace_dir: Path,
+        prompt: str,
+        timeout: int,
+        sandbox: DockerSandbox,
+    ) -> tuple[int, str]:
         cmd = [
             self.agy_path,
             "--dangerously-skip-permissions",
@@ -38,24 +45,7 @@ class AntigravityHarness(AgentHarness):
             cmd.extend(["--effort", self.effort])
 
         logger.info("Executing agy in %s (timeout: %ds)", workspace_dir, timeout)
-        env = os.environ.copy()
-
-        try:
-            res = subprocess.run(
-                cmd,
-                cwd=workspace_dir,
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                env=env,
-            )
-            output = f"{res.stdout}\n{res.stderr}".strip()
-            return res.returncode, output
-        except subprocess.TimeoutExpired:
-            return -1, f"Antigravity CLI timed out after {timeout} seconds"
-        except Exception as e:
-            return -1, f"Failed to execute Antigravity CLI: {e}"
+        return sandbox.run_command(workspace_dir, cmd, timeout=timeout)
 
     def execute(
         self,
@@ -63,7 +53,9 @@ class AntigravityHarness(AgentHarness):
         prompt: str,
         test_command: str | None = None,
         timeout: int = 1800,
+        sandbox: DockerSandbox | None = None,
     ) -> HarnessResult:
+        active_sandbox = sandbox or DockerSandbox(SandboxConfig(use_docker=False))
         full_prompt = (
             f"{prompt}\n\n"
             "Requirements:\n"
@@ -73,13 +65,13 @@ class AntigravityHarness(AgentHarness):
         if test_command:
             full_prompt += f"- Ensure the project tests pass: `{test_command}`\n"
 
-        code, output = self._run_agy(workspace_dir, full_prompt, timeout)
+        code, output = self._run_agy(workspace_dir, full_prompt, timeout, active_sandbox)
 
-        if code == -1 and "timed out" in output:
+        if code == -1 and "timed out" in output.lower():
             return HarnessResult(
                 success=False,
                 status="timeout",
-                diff_summary=self.get_git_diff_summary(workspace_dir),
+                diff_summary=GitWorkspace.get_git_diff_summary(workspace_dir),
                 test_passed=False,
                 output=output,
                 error="Execution timed out",
@@ -88,7 +80,7 @@ class AntigravityHarness(AgentHarness):
         test_passed = True
         test_output = ""
         if test_command:
-            test_passed, test_output = self.run_tests(workspace_dir, test_command)
+            test_passed, test_output = active_sandbox.run_tests(workspace_dir, test_command)
             if not test_passed:
                 logger.warning("Initial tests failed. Triggering 1 repair loop with agy...")
                 repair_prompt = (
@@ -96,11 +88,11 @@ class AntigravityHarness(AgentHarness):
                     f"{test_output}\n\n"
                     f"Please fix the code so `{test_command}` passes."
                 )
-                _, repair_output = self._run_agy(workspace_dir, repair_prompt, min(600, timeout))
+                _, repair_output = self._run_agy(workspace_dir, repair_prompt, min(600, timeout), active_sandbox)
                 output += f"\n\n--- Repair Output ---\n{repair_output}"
-                test_passed, test_output = self.run_tests(workspace_dir, test_command)
+                test_passed, test_output = active_sandbox.run_tests(workspace_dir, test_command)
 
-        diff_summary = self.get_git_diff_summary(workspace_dir)
+        diff_summary = GitWorkspace.get_git_diff_summary(workspace_dir)
         success = (code == 0) and test_passed
 
         return HarnessResult(

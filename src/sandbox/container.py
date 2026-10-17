@@ -145,6 +145,7 @@ class DockerSandbox:
                 cmd,
                 shell=is_shell,
                 cwd=workspace_dir,
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
@@ -157,6 +158,12 @@ class DockerSandbox:
         except Exception as e:
             return -1, f"Command execution failed: {e}"
 
+    def run_tests(self, workspace_dir: Path, test_command: str, timeout: int = 600) -> tuple[bool, str]:
+        """Run repository test/lint command inside the sandbox."""
+        logger.info("Running test command in %s: %s", workspace_dir, test_command)
+        code, output = self.run_command(workspace_dir, test_command, timeout=timeout)
+        return code == 0, output
+
     def execute_harness(
         self,
         harness: AgentHarness,
@@ -165,10 +172,11 @@ class DockerSandbox:
         test_command: str | None = None,
         timeout: int = 1800,
     ) -> HarnessResult:
-        """Run agent harness directly on workspace."""
+        """Run agent harness inside the sandbox."""
         return harness.execute(
             workspace_dir=workspace_dir,
             prompt=prompt,
             test_command=test_command,
             timeout=timeout,
+            sandbox=self,
         )

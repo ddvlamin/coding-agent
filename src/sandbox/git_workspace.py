@@ -86,6 +86,34 @@ class GitWorkspace:
             cmd.append("--force")
         self._run_git(repo_dir, cmd)
 
+    @staticmethod
+    def get_git_diff_summary(workspace_dir: Path) -> str:
+        """Get summary of git changes in workspace."""
+        try:
+            res = subprocess.run(
+                ["git", "diff", "--stat"],
+                cwd=workspace_dir,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=30,
+            )
+            summary = res.stdout.strip()
+            if not summary:
+                res_status = subprocess.run(
+                    ["git", "status", "--short"],
+                    cwd=workspace_dir,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=30,
+                )
+                summary = res_status.stdout.strip()
+            return summary or "No changes detected"
+        except Exception as e:
+            logger.warning("Failed to get git diff summary in %s: %s", workspace_dir, e)
+            return "Unable to determine git diff"
+
     def _run_git(self, cwd: Path, args: list[str]) -> str:
         cmd = ["git"] + args
         res = subprocess.run(

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import logging
 import os
-import subprocess
 from pathlib import Path
 
+from src.config import SandboxConfig
 from src.harnesses.base import AgentHarness, HarnessResult
+from src.sandbox.container import DockerSandbox
+from src.sandbox.git_workspace import GitWorkspace
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,13 @@ class OpenCodeHarness(AgentHarness):
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
         self.base_url = base_url
 
-    def _run_opencode(self, workspace_dir: Path, prompt: str, timeout: int) -> tuple[int, str]:
+    def _run_opencode(
+        self,
+        workspace_dir: Path,
+        prompt: str,
+        timeout: int,
+        sandbox: DockerSandbox,
+    ) -> tuple[int, str]:
         cmd = [
             self.opencode_path,
             "run",
@@ -38,7 +46,7 @@ class OpenCodeHarness(AgentHarness):
             cmd.extend(["--model", self.model])
 
         logger.info("Executing opencode in %s with model %s (timeout: %ds)", workspace_dir, self.model, timeout)
-        env = os.environ.copy()
+        env: dict[str, str] = {}
         if self.api_key:
             env["DEEPSEEK_API_KEY"] = self.api_key
             env["OPENAI_API_KEY"] = self.api_key
@@ -46,21 +54,7 @@ class OpenCodeHarness(AgentHarness):
             env["DEEPSEEK_BASE_URL"] = self.base_url
             env["OPENAI_BASE_URL"] = self.base_url
 
-        try:
-            res = subprocess.run(
-                cmd,
-                cwd=workspace_dir,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                env=env,
-            )
-            output = f"{res.stdout}\n{res.stderr}".strip()
-            return res.returncode, output
-        except subprocess.TimeoutExpired:
-            return -1, f"OpenCode CLI timed out after {timeout} seconds"
-        except Exception as e:
-            return -1, f"Failed to execute OpenCode CLI: {e}"
+        return sandbox.run_command(workspace_dir, cmd, env=env, timeout=timeout)
 
     def execute(
         self,
@@ -68,7 +62,9 @@ class OpenCodeHarness(AgentHarness):
         prompt: str,
         test_command: str | None = None,
         timeout: int = 1800,
+        sandbox: DockerSandbox | None = None,
     ) -> HarnessResult:
+        active_sandbox = sandbox or DockerSandbox(SandboxConfig(use_docker=False))
         full_prompt = (
             f"{prompt}\n\n"
             "Requirements:\n"
@@ -78,13 +74,13 @@ class OpenCodeHarness(AgentHarness):
         if test_command:
             full_prompt += f"- Run and satisfy project tests: `{test_command}`\n"
 
-        code, output = self._run_opencode(workspace_dir, full_prompt, timeout)
+        code, output = self._run_opencode(workspace_dir, full_prompt, timeout, active_sandbox)
 
-        if code == -1 and "timed out" in output:
+        if code == -1 and "timed out" in output.lower():
             return HarnessResult(
                 success=False,
                 status="timeout",
-                diff_summary=self.get_git_diff_summary(workspace_dir),
+                diff_summary=GitWorkspace.get_git_diff_summary(workspace_dir),
                 test_passed=False,
                 output=output,
                 error="Execution timed out",
@@ -93,7 +89,7 @@ class OpenCodeHarness(AgentHarness):
         test_passed = True
         test_output = ""
         if test_command:
-            test_passed, test_output = self.run_tests(workspace_dir, test_command)
+            test_passed, test_output = active_sandbox.run_tests(workspace_dir, test_command)
             if not test_passed:
                 logger.warning("Initial tests failed with OpenCode. Attempting repair loop...")
                 repair_prompt = (
@@ -101,11 +97,11 @@ class OpenCodeHarness(AgentHarness):
                     f"{test_output}\n\n"
                     f"Please fix the code so `{test_command}` passes."
                 )
-                _, repair_output = self._run_opencode(workspace_dir, repair_prompt, min(600, timeout))
+                _, repair_output = self._run_opencode(workspace_dir, repair_prompt, min(600, timeout), active_sandbox)
                 output += f"\n\n--- Repair Output ---\n{repair_output}"
-                test_passed, test_output = self.run_tests(workspace_dir, test_command)
+                test_passed, test_output = active_sandbox.run_tests(workspace_dir, test_command)
 
-        diff_summary = self.get_git_diff_summary(workspace_dir)
+        diff_summary = GitWorkspace.get_git_diff_summary(workspace_dir)
         success = (code == 0) and test_passed
 
         return HarnessResult(

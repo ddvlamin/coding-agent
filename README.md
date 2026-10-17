@@ -57,6 +57,25 @@ docker build -f Dockerfile.sandbox -t repo-agent-sandbox:latest .
    - `~/.gemini/antigravity-cli/antigravity-oauth-token` → `/home/runner/.gemini/antigravity-cli/antigravity-oauth-token` (`rw`)
 4. If Docker is unavailable or `use_docker: false`, [`DockerSandbox`](src/sandbox/container.py) automatically falls back to local host execution.
 
+### Troubleshooting the Docker Daemon (Devcontainer / Docker-in-Docker)
+If `docker build` fails with `Cannot connect to the Docker daemon at unix:///var/run/docker.sock`:
+
+1. **Start or restart the daemon**:
+   ```bash
+   sudo pkill dockerd; sudo pkill containerd
+   sudo /usr/local/share/docker-init.sh true
+   ```
+2. **Recover from a corrupted BuildKit database** (if `/tmp/dockerd.log` shows `panic: assertion failed: Page expected to be...` under `Initializing buildkit`):
+   ```bash
+   sudo pkill dockerd; sudo pkill containerd
+   sudo rm -rf /var/lib/docker/buildkit
+   sudo /usr/local/share/docker-init.sh true
+   ```
+3. **Verify daemon status**:
+   ```bash
+   docker info
+   ```
+
 ---
 
 ## 3. GitHub App Setup

@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.config import RepoConfig
-from src.github.client import GitHubClient, PullRequestInfo, ReviewThreadInfo
+from src.github.client import GitHubClient, LABEL_AGENT_FIX, PullRequestInfo, ReviewThreadInfo
 from src.harnesses.base import AgentHarness
 from src.sandbox.container import DockerSandbox
 from src.sandbox.git_workspace import GitWorkspace
@@ -58,11 +58,11 @@ class Stage1CommentsResolver:
         bot_slug = bot_username.removesuffix("[bot]")
 
         for pr in prs:
-            # Check eligibility: bot author OR labeled 'agent-fix'
+            # Check eligibility: bot author OR labeled 'agent fix'
             author_lower = pr.author.lower()
             is_agent_pr = (
                 author_lower in (bot_username, bot_slug, f"{bot_slug}[bot]")
-                or "agent-fix" in [lb.lower() for lb in pr.labels]
+                or LABEL_AGENT_FIX in [lb.lower() for lb in pr.labels]
             )
             if not is_agent_pr:
                 continue
