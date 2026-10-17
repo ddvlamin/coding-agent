@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.sandbox.container import DockerSandbox
+    from src.sandbox.container import BaseSandbox, DockerSandbox
 
 
 @dataclass
@@ -32,7 +32,7 @@ class AgentHarness(ABC):
         prompt: str,
         test_command: str | None = None,
         timeout: int = 1800,
-        sandbox: DockerSandbox | None = None,
+        sandbox: BaseSandbox | None = None,
     ) -> HarnessResult:
         """
         Executes an agent task inside the target workspace via the sandbox.
